@@ -35,15 +35,59 @@ Game.keys = {
   40: 'down'
 }
 
+// Here is a real game loop. Similar to the ones you'll find in most games.
 Game.prototype.start = function() {
-  var self = this,
-      fps = 60,
-      interval = 1000 / fps // ms per frame
+  var self = this
 
-  setInterval(function() {
-    self.update()
-    self.draw()
-  }, interval)
+  this.lastUpdateTime = new Date().getTime()
+  
+  // The loop
+  onFrame(function() {
+    // A turn in the loop is called a step.
+    // Two possible modes:
+    self.fixedTimeStep()
+    // or
+    // self.variableTimeStep()
+  })
+}
+
+// Instead of relying on a timer, we use a special browser function called
+// `requestAnimationFrame(callback)`. It calls the `callback` at interval 
+// synced with the display refresh rate.
+// More info at:
+// https://developer.mozilla.org/en/docs/Web/API/window.requestAnimationFrame
+var onFrame = function(callback) {
+  if (window.requestAnimationFrame) {
+    requestAnimationFrame(function() {
+      callback()
+      // requestAnimationFrame only calls our callback once, we need to
+      // schedule the next call ourself.
+      onFrame(callback)
+    })
+  } else {
+    // requestAnimationFrame is not supported by all browsers. We fall back to
+    // a timer.
+    var fps = 60
+    setInterval(callback, 1000 / fps)
+  }
+}
+
+Game.prototype.fixedTimeStep = function() {
+  var fps = 60,
+      interval = 1000 / fps,
+      updated = false
+
+  // While we're not up to date ...
+  while (this.lastUpdateTime < new Date().getTime()) {
+    this.update()
+    updated = true
+    // We jump at fixed intervals until we catch up to the current time.
+    this.lastUpdateTime += interval
+  }
+
+  // No need to draw if nothing was updated
+  if (updated) this.draw()
+  updated = false
 }
 
 Game.prototype.update = function() {
